@@ -1,49 +1,18 @@
-from flask import Flask, render_template, request, jsonify, send_file, session
+from flask import Flask, render_template, request, jsonify, session
 import os
 import httpx
 import json
 import time
 import hashlib
 from datetime import datetime
-from functools import wraps
-from pathlib import Path
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY') or os.urandom(24)
+app.secret_key = os.environ.get('SECRET_KEY', 'your-default-secret-key')
 
-# Constants
-COOKIE_FILE = 'data/cookies.json'
-ADMIN_FILE = 'data/admin.json'
-BACKUP_DIR = 'data/backups'
-MAINTENANCE_FILE = 'data/maintenance.json'
-TEMP_DIR = 'data/temp'
-
-# Ensure data directory exists
-def ensure_directories():
-    for directory in ['data', BACKUP_DIR, TEMP_DIR]:
-        Path(directory).mkdir(exist_ok=True)
-
-# Initialize files
-def init_files():
-    if not os.path.exists(ADMIN_FILE):
-        os.makedirs(os.path.dirname(ADMIN_FILE), exist_ok=True)
-        with open(ADMIN_FILE, 'w') as f:
-            json.dump({
-                'admins': [hashlib.sha256('admin123'.encode()).hexdigest()]
-            }, f)
-
-    if not os.path.exists(MAINTENANCE_FILE):
-        os.makedirs(os.path.dirname(MAINTENANCE_FILE), exist_ok=True)
-        with open(MAINTENANCE_FILE, 'w') as f:
-            json.dump({'maintenance': False}, f)
-
-    if not os.path.exists(COOKIE_FILE):
-        os.makedirs(os.path.dirname(COOKIE_FILE), exist_ok=True)
-        with open(COOKIE_FILE, 'w') as f:
-            json.dump({'cookies': []}, f)
-
-ensure_directories()
-init_files()
+# In-memory storage for serverless environment
+COOKIES_DATA = {'cookies': []}
+MAINTENANCE_MODE = False
+ADMIN_PASSWORD = hashlib.sha256('admin123'.encode()).hexdigest()
 
 def generate_cookie(user, passw):
     """Generate cookie using WinkApi"""
@@ -75,51 +44,16 @@ def generate_cookie(user, passw):
     finally:
         client.close()
 
-def save_cookies(cookies_data):
-    with open(COOKIE_FILE, 'w') as f:
-        if isinstance(cookies_data, dict):
-            json.dump(cookies_data, f, indent=4)
-        else:
-            json.dump({'cookies': cookies_data}, f, indent=4)
-
-def load_cookies():
-    try:
-        with open(COOKIE_FILE, 'r') as f:
-            data = json.load(f)
-            return data if isinstance(data, dict) else {'cookies': data}
-    except FileNotFoundError:
-        return {'cookies': []}
-
-def check_maintenance():
-    try:
-        with open(MAINTENANCE_FILE, 'r') as f:
-            data = json.load(f)
-            return data.get('maintenance', False)
-    except:
-        with open(MAINTENANCE_FILE, 'w') as f:
-            json.dump({'maintenance': False}, f)
-        return False
-
 def admin_required(f):
-    @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get('admin_logged_in'):
             return jsonify({'error': 'Unauthorized'}), 401
         return f(*args, **kwargs)
     return decorated_function
 
-@app.before_request
-def before_request():
-    if request.path.startswith('/static/') or request.path.startswith('/admin'):
-        return
-    if check_maintenance() and request.path != '/':
-        if request.path.startswith('/api/'):
-            return jsonify({'error': 'Site is under maintenance'}), 503
-        return render_template('maintenance.html')
-
 @app.route('/')
 def index():
-    if check_maintenance():
+    if MAINTENANCE_MODE:
         return render_template('maintenance.html')
     return render_template('index.html')
 
@@ -129,7 +63,7 @@ def admin():
 
 @app.route('/api/add', methods=['POST'])
 def add_account():
-    if check_maintenance():
+    if MAINTENANCE_MODE:
         return jsonify({'error': 'Site is under maintenance'}), 503
 
     data = request.json
@@ -142,13 +76,13 @@ def add_account():
     cookie, uid = generate_cookie(user, passw)
     
     if cookie and uid:
-        cookies_data = load_cookies()
-        
-        for existing in cookies_data['cookies']:
+        # Check if account already exists
+        for existing in COOKIES_DATA['cookies']:
             if existing['user'] == user:
                 return jsonify({'error': 'Account already exists'}), 400
         
-        cookies_data['cookies'].append({
+        # Add new account
+        COOKIES_DATA['cookies'].append({
             'user': user,
             'password': passw,
             'cookie': cookie,
@@ -156,8 +90,6 @@ def add_account():
             'added_date': datetime.now().isoformat(),
             'last_refresh': datetime.now().isoformat()
         })
-        
-        save_cookies(cookies_data)
         
         return jsonify({
             'success': True,
@@ -171,18 +103,17 @@ def add_account():
 
 @app.route('/api/list', methods=['GET'])
 def list_accounts():
-    if check_maintenance():
+    if MAINTENANCE_MODE:
         return jsonify({'error': 'Site is under maintenance'}), 503
 
-    cookies_data = load_cookies()
     return jsonify({
         'success': True,
-        'accounts': cookies_data['cookies']
+        'accounts': COOKIES_DATA['cookies']
     })
 
 @app.route('/api/delete', methods=['POST'])
 def delete_account():
-    if check_maintenance():
+    if MAINTENANCE_MODE:
         return jsonify({'error': 'Site is under maintenance'}), 503
 
     data = request.json
@@ -191,14 +122,12 @@ def delete_account():
     if not user:
         return jsonify({'error': 'User email required'}), 400
 
-    cookies_data = load_cookies()
-    original_length = len(cookies_data['cookies'])
-    cookies_data['cookies'] = [acc for acc in cookies_data['cookies'] if acc['user'] != user]
+    original_length = len(COOKIES_DATA['cookies'])
+    COOKIES_DATA['cookies'] = [acc for acc in COOKIES_DATA['cookies'] if acc['user'] != user]
     
-    if len(cookies_data['cookies']) == original_length:
+    if len(COOKIES_DATA['cookies']) == original_length:
         return jsonify({'error': 'Account not found'}), 404
 
-    save_cookies(cookies_data)
     return jsonify({
         'success': True,
         'message': 'Account deleted successfully'
@@ -213,11 +142,9 @@ def admin_login():
 
     hashed_password = hashlib.sha256(password.encode()).hexdigest()
     
-    with open(ADMIN_FILE, 'r') as f:
-        admin_data = json.load(f)
-        if hashed_password in admin_data['admins']:
-            session['admin_logged_in'] = True
-            return jsonify({'success': True})
+    if hashed_password == ADMIN_PASSWORD:
+        session['admin_logged_in'] = True
+        return jsonify({'success': True})
     
     return jsonify({'error': 'Invalid password'}), 401
 
@@ -225,15 +152,12 @@ def admin_login():
 @admin_required
 def toggle_maintenance():
     try:
-        current = check_maintenance()
-        new_state = not current
-        
-        with open(MAINTENANCE_FILE, 'w') as f:
-            json.dump({'maintenance': new_state}, f)
+        global MAINTENANCE_MODE
+        MAINTENANCE_MODE = not MAINTENANCE_MODE
         
         return jsonify({
             'success': True,
-            'maintenance': new_state
+            'maintenance': MAINTENANCE_MODE
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -242,14 +166,13 @@ def toggle_maintenance():
 @admin_required
 def get_stats():
     try:
-        cookies_data = load_cookies()
-        total_accounts = len(cookies_data.get('cookies', []))
-        active_cookies = sum(1 for cookie in cookies_data.get('cookies', []) if cookie.get('cookie'))
+        total_accounts = len(COOKIES_DATA['cookies'])
+        active_cookies = sum(1 for cookie in COOKIES_DATA['cookies'] if cookie.get('cookie'))
         
         return jsonify({
             'total_accounts': total_accounts,
             'active_cookies': active_cookies,
-            'maintenance': check_maintenance()
+            'maintenance': MAINTENANCE_MODE
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
