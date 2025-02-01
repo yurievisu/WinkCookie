@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Cookie Manager</title>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .fancy-blur {
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+    </style>
+</head>
+<body class="bg-black text-zinc-100 min-h-screen">
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 bg-zinc-950/80 border-b border-zinc-800/50 fancy-blur z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+            <div class="flex items-center justify-between h-16">
+                <a href="/" class="flex items-center space-x-3">
+                    <i data-lucide="shield" class="w-6 h-6"></i>
+                    <span class="text-xl font-bold">Admin Panel</span>
+                </a>
+                <button onclick="window.location.href='/'" class="text-zinc-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main id="loginForm" class="max-w-md mx-auto px-4 py-24">
+        <div class="bg-zinc-900/50 rounded-2xl p-6 border border-zinc-800/50 fancy-blur">
+            <h2 class="text-xl font-bold mb-6">Admin Login</h2>
+            <form onsubmit="login(event)" class="space-y-6">
+                <div class="space-y-2">
+                    <label class="block text-sm text-zinc-400">Password</label>
+                    <input type="password" id="password" required
+                        class="w-full px-4 py-3 bg-black border border-zinc-800 rounded-xl focus:ring-2 focus:ring-white/10 focus:border-transparent transition-all"
+                        placeholder="Enter admin password">
+                </div>
+                <button type="submit" 
+                    class="w-full px-6 py-3 bg-white text-black rounded-xl font-medium hover:bg-zinc-100 transition-colors flex items-center justify-center space-x-2">
+                    <i data-lucide="log-in" class="w-4 h-4"></i>
+                    <span>Login</span>
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <main id="adminPanel" class="max-w-7xl mx-auto px-4 sm:px-6 py-24 space-y-8 hidden">
+        <!-- Stats -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-zinc-900/50 rounded-xl p-4 border border-zinc-800/50 fancy-blur">
+                <div class="flex items-center justify-between">
+                    <span class="text-zinc-400">Total Accounts</span>
+                    <i data-lucide="users" class="w-4 h-4 text-blue-500"></i>
+                </div>
+                <p id="totalAccounts" class="text-2xl font-bold mt-2">0</p>
+            </div>
+            <div class="bg-zinc-900/50 rounded-xl p-4 border border-zinc-800/50 fancy-blur">
+                <div class="flex items-center justify-between">
+                    <span class="text-zinc-400">Active Cookies</span>
+                    <i data-lucide="cookie" class="w-4 h-4 text-green-500"></i>
+                </div>
+                <p id="activeCookies" class="text-2xl font-bold mt-2">0</p>
+            </div>
+            <div class="bg-zinc-900/50 rounded-xl p-4 border border-zinc-800/50 fancy-blur">
+                <div class="flex items-center justify-between">
+                    <span class="text-zinc-400">Maintenance Mode</span>
+                    <i data-lucide="tool" class="w-4 h-4 text-yellow-500"></i>
+                </div>
+                <button onclick="toggleMaintenance()" id="maintenanceStatus" 
+                    class="mt-2 px-3 py-1 rounded-full text-sm font-medium bg-zinc-800 text-zinc-400">
+                    Off
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast -->
+    <div id="toast" class="hidden fixed bottom-4 right-4 max-w-xs bg-zinc-900 border border-zinc-800 rounded-xl p-4 fancy-blur">
+        <div class="flex items-start space-x-3">
+            <div id="toastIcon" class="flex-shrink-0 w-5 h-5"></div>
+            <div class="flex-1">
+                <h3 id="toastTitle" class="font-medium"></h3>
+                <p id="toastMessage" class="text-sm text-zinc-400 mt-1"></p>
+            </div>
+            <button onclick="hideToast()" class="flex-shrink-0 text-zinc-400 hover:text-white">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Toast System
+        function showToast(title, message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastTitle = document.getElementById('toastTitle');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+            
+            let icon = '';
+            switch(type) {
+                case 'success':
+                    icon = '<i data-lucide="check-circle" class="text-green-500"></i>';
+                    break;
+                case 'error':
+                    icon = '<i data-lucide="x-circle" class="text-red-500"></i>';
+                    break;
+                default:
+                    icon = '<i data-lucide="info" class="text-blue-500"></i>';
+            }
+            
+            toastIcon.innerHTML = icon;
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+            
+            toast.classList.remove('hidden');
+            lucide.createIcons();
+            
+            setTimeout(hideToast, 5000);
+        }
+
+        function hideToast() {
+            document.getElementById('toast').classList.add('hidden');
+        }
+
+        // Admin Functions
+        async function login(e) {
+            e.preventDefault();
+            
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('loginForm').classList.add('hidden');
+                    document.getElementById('adminPanel').classList.remove('hidden');
+                    loadStats();
+                } else {
+                    showToast('Error', data.error || 'Invalid password', 'error');
+                }
+            } catch (error) {
+                showToast('Error', 'Login failed', 'error');
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/admin/stats');
+                const data = await response.json();
+                
+                document.getElementById('totalAccounts').textContent = data.total_accounts;
+                document.getElementById('activeCookies').textContent = data.active_cookies;
+                
+                const maintenanceBtn = document.getElementById('maintenanceStatus');
+                maintenanceBtn.textContent = data.maintenance ? 'On' : 'Off';
+                maintenanceBtn.className = data.maintenance 
+                    ? 'mt-2 px-3 py-1 rounded-full text-sm font-medium bg-yellow-500/10 text-yellow-500'
+                    : 'mt-2 px-3 py-1 rounded-full text-sm font-medium bg-zinc-800 text-zinc-400';
+            } catch (error) {
+                showToast('Error', 'Failed to load stats', 'error');
+            }
+        }
+
+        async function toggleMaintenance() {
+            try {
+                const response = await fetch('/api/admin/maintenance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const maintenanceBtn = document.getElementById('maintenanceStatus');
+                    maintenanceBtn.textContent = data.maintenance ? 'On' : 'Off';
+                    maintenanceBtn.className = data.maintenance 
+                        ? 'mt-2 px-3 py-1 rounded-full text-sm font-medium bg-yellow-500/10 text-yellow-500'
+                        : 'mt-2 px-3 py-1 rounded-full text-sm font-medium bg-zinc-800 text-zinc-400';
+                    
+                    showToast(
+                        'Success', 
+                        `Maintenance mode ${data.maintenance ? 'enabled' : 'disabled'}`,
+                        'success'
+                    );
+                } else {
+                    showToast('Error', data.error || 'Failed to toggle maintenance mode', 'error');
+                }
+            } catch (error) {
+                showToast('Error', 'Failed to toggle maintenance mode', 'error');
+            }
+        }
+
+        // Auto-refresh stats every 30 seconds
+        setInterval(loadStats, 30000);
+    </script>
+</body>
+</html>
