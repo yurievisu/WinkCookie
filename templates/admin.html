@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Cookie Manager</title>
+    <title>Admin Panel - Cookie Manager</title>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -17,75 +17,107 @@
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
         }
+
+        .hover-card {
+            transition: all 0.3s ease;
+        }
+
+        .hover-card:hover {
+            transform: translateY(-2px);
+        }
     </style>
 </head>
-<body class="bg-black text-zinc-100 min-h-screen">
-    <!-- Navigation -->
-    <nav class="fixed top-0 left-0 right-0 bg-zinc-950/80 border-b border-zinc-800/50 fancy-blur z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6">
-            <div class="flex items-center justify-between h-16">
-                <a href="/" class="flex items-center space-x-3">
-                    <i data-lucide="shield" class="w-6 h-6"></i>
-                    <span class="text-xl font-bold">Admin Panel</span>
-                </a>
-                <button onclick="window.location.href='/'" class="text-zinc-400 hover:text-white">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen">
+    <!-- Login Form (Initially Visible) -->
+    <div id="loginSection" class="min-h-screen flex items-center justify-center p-4">
+        <div class="max-w-md w-full">
+            <div class="text-center space-y-4 mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-zinc-900 rounded-2xl border border-zinc-800 mb-4">
+                    <i data-lucide="shield" class="w-8 h-8 text-blue-500"></i>
+                </div>
+                <h1 class="text-3xl font-bold">Admin Access</h1>
+                <p class="text-zinc-400">Enter your credentials to access the admin panel</p>
+            </div>
+
+            <div class="bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-2xl p-6 space-y-6">
+                <form id="loginForm" class="space-y-4">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-zinc-400">Admin Password</label>
+                        <div class="relative">
+                            <i data-lucide="lock" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500"></i>
+                            <input type="password" id="password" required
+                                class="w-full pl-10 pr-4 py-3 bg-black/50 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/20 transition-all"
+                                placeholder="Enter admin password">
+                        </div>
+                    </div>
+                    <button type="submit" 
+                        class="w-full px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-500 transition-all flex items-center justify-center space-x-2">
+                        <i data-lucide="log-in" class="w-4 h-4"></i>
+                        <span>Login</span>
+                    </button>
+                </form>
             </div>
         </div>
-    </nav>
+    </div>
 
-    <main id="loginForm" class="max-w-md mx-auto px-4 py-24">
-        <div class="bg-zinc-900/50 rounded-2xl p-6 border border-zinc-800/50 fancy-blur">
-            <h2 class="text-xl font-bold mb-6">Admin Login</h2>
-            <form onsubmit="login(event)" class="space-y-6">
-                <div class="space-y-2">
-                    <label class="block text-sm text-zinc-400">Password</label>
-                    <input type="password" id="password" required
-                        class="w-full px-4 py-3 bg-black border border-zinc-800 rounded-xl focus:ring-2 focus:ring-white/10 focus:border-transparent transition-all"
-                        placeholder="Enter admin password">
+    <!-- Admin Dashboard (Initially Hidden) -->
+    <div id="adminPanel" class="hidden">
+        <!-- Top Navigation -->
+        <nav class="fixed top-0 left-0 right-0 bg-zinc-900/90 border-b border-zinc-800 fancy-blur z-50">
+            <div class="max-w-7xl mx-auto px-4">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center space-x-3">
+                        <i data-lucide="shield" class="w-6 h-6 text-blue-500"></i>
+                        <span class="text-xl font-bold">Admin Panel</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="flex items-center space-x-2 text-sm text-zinc-400 hover:text-white transition-colors">
+                            <i data-lucide="home" class="w-4 h-4"></i>
+                            <span>Home</span>
+                        </a>
+                        <button onclick="logout()" class="flex items-center space-x-2 text-sm text-zinc-400 hover:text-white transition-colors">
+                            <i data-lucide="log-out" class="w-4 h-4"></i>
+                            <span>Logout</span>
+                        </button>
+                    </div>
                 </div>
-                <button type="submit" 
-                    class="w-full px-6 py-3 bg-white text-black rounded-xl font-medium hover:bg-zinc-100 transition-colors flex items-center justify-center space-x-2">
-                    <i data-lucide="log-in" class="w-4 h-4"></i>
-                    <span>Login</span>
-                </button>
-            </form>
-        </div>
-    </main>
+            </div>
+        </nav>
 
-    <main id="adminPanel" class="max-w-7xl mx-auto px-4 sm:px-6 py-24 space-y-8 hidden">
-        <!-- Stats -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="bg-zinc-900/50 rounded-xl p-4 border border-zinc-800/50 fancy-blur">
-                <div class="flex items-center justify-between">
-                    <span class="text-zinc-400">Total Accounts</span>
-                    <i data-lucide="users" class="w-4 h-4 text-blue-500"></i>
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 pt-24 pb-8 space-y-8">
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="bg-zinc-900/50 rounded-xl p-6 border border-zinc-800 hover-card">
+                    <div class="flex items-center justify-between">
+                        <span class="text-zinc-400">Total Accounts</span>
+                        <i data-lucide="users" class="w-5 h-5 text-blue-500"></i>
+                    </div>
+                    <p id="totalAccounts" class="text-3xl font-bold mt-2">0</p>
                 </div>
-                <p id="totalAccounts" class="text-2xl font-bold mt-2">0</p>
-            </div>
-            <div class="bg-zinc-900/50 rounded-xl p-4 border border-zinc-800/50 fancy-blur">
-                <div class="flex items-center justify-between">
-                    <span class="text-zinc-400">Active Cookies</span>
-                    <i data-lucide="cookie" class="w-4 h-4 text-green-500"></i>
+                <div class="bg-zinc-900/50 rounded-xl p-6 border border-zinc-800 hover-card">
+                    <div class="flex items-center justify-between">
+                        <span class="text-zinc-400">Active Cookies</span>
+                        <i data-lucide="cookie" class="w-5 h-5 text-green-500"></i>
+                    </div>
+                    <p id="activeCookies" class="text-3xl font-bold mt-2">0</p>
                 </div>
-                <p id="activeCookies" class="text-2xl font-bold mt-2">0</p>
-            </div>
-            <div class="bg-zinc-900/50 rounded-xl p-4 border border-zinc-800/50 fancy-blur">
-                <div class="flex items-center justify-between">
-                    <span class="text-zinc-400">Maintenance Mode</span>
-                    <i data-lucide="tool" class="w-4 h-4 text-yellow-500"></i>
+                <div class="bg-zinc-900/50 rounded-xl p-6 border border-zinc-800 hover-card">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-zinc-400">Maintenance Mode</span>
+                        <i data-lucide="tool" class="w-5 h-5 text-yellow-500"></i>
+                    </div>
+                    <button onclick="toggleMaintenance()" id="maintenanceStatus" 
+                        class="px-3 py-1 rounded-full text-sm font-medium bg-zinc-800 text-zinc-400">
+                        Off
+                    </button>
                 </div>
-                <button onclick="toggleMaintenance()" id="maintenanceStatus" 
-                    class="mt-2 px-3 py-1 rounded-full text-sm font-medium bg-zinc-800 text-zinc-400">
-                    Off
-                </button>
             </div>
-        </div>
-    </main>
+        </main>
+    </div>
 
-    <!-- Toast -->
-    <div id="toast" class="hidden fixed bottom-4 right-4 max-w-xs bg-zinc-900 border border-zinc-800 rounded-xl p-4 fancy-blur">
+    <!-- Toast Notification -->
+    <div id="toast" class="hidden fixed bottom-4 right-4 max-w-xs bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-xl p-4 z-50">
         <div class="flex items-start space-x-3">
             <div id="toastIcon" class="flex-shrink-0 w-5 h-5"></div>
             <div class="flex-1">
@@ -135,11 +167,19 @@
             document.getElementById('toast').classList.add('hidden');
         }
 
-        // Admin Functions
-        async function login(e) {
+        // Login Form Handler
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const password = document.getElementById('password').value;
+            const button = e.target.querySelector('button');
+            
+            button.disabled = true;
+            button.innerHTML = `
+                <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                <span>Logging in...</span>
+            `;
+            lucide.createIcons();
             
             try {
                 const response = await fetch('/api/admin/login', {
@@ -153,17 +193,25 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    document.getElementById('loginForm').classList.add('hidden');
+                    document.getElementById('loginSection').classList.add('hidden');
                     document.getElementById('adminPanel').classList.remove('hidden');
                     loadStats();
                 } else {
-                    showToast('Error', data.error || 'Invalid password', 'error');
+                    showToast('Error', 'Invalid password', 'error');
                 }
             } catch (error) {
                 showToast('Error', 'Login failed', 'error');
+            } finally {
+                button.disabled = false;
+                button.innerHTML = `
+                    <i data-lucide="log-in" class="w-4 h-4"></i>
+                    <span>Login</span>
+                `;
+                lucide.createIcons();
             }
-        }
+        });
 
+        // Load Stats
         async function loadStats() {
             try {
                 const response = await fetch('/api/admin/stats');
@@ -175,46 +223,88 @@
                 const maintenanceBtn = document.getElementById('maintenanceStatus');
                 maintenanceBtn.textContent = data.maintenance ? 'On' : 'Off';
                 maintenanceBtn.className = data.maintenance 
-                    ? 'mt-2 px-3 py-1 rounded-full text-sm font-medium bg-yellow-500/10 text-yellow-500'
-                    : 'mt-2 px-3 py-1 rounded-full text-sm font-medium bg-zinc-800 text-zinc-400';
+                    ? 'px-3 py-1 rounded-full text-sm font-medium bg-yellow-500/10 text-yellow-500'
+                    : 'px-3 py-1 rounded-full text-sm font-medium bg-zinc-800 text-zinc-400';
             } catch (error) {
                 showToast('Error', 'Failed to load stats', 'error');
             }
         }
 
+        // Toggle Maintenance Mode
         async function toggleMaintenance() {
             try {
                 const response = await fetch('/api/admin/maintenance', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
+                    method: 'POST'
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    const maintenanceBtn = document.getElementById('maintenanceStatus');
-                    maintenanceBtn.textContent = data.maintenance ? 'On' : 'Off';
-                    maintenanceBtn.className = data.maintenance 
-                        ? 'mt-2 px-3 py-1 rounded-full text-sm font-medium bg-yellow-500/10 text-yellow-500'
-                        : 'mt-2 px-3 py-1 rounded-full text-sm font-medium bg-zinc-800 text-zinc-400';
-                    
-                    showToast(
-                        'Success', 
-                        `Maintenance mode ${data.maintenance ? 'enabled' : 'disabled'}`,
-                        'success'
-                    );
-                } else {
-                    showToast('Error', data.error || 'Failed to toggle maintenance mode', 'error');
+                        const btn = document.getElementById('maintenanceStatus');
+                        btn.textContent = data.maintenance ? 'On' : 'Off';
+                        btn.className = data.maintenance 
+                            ? 'px-3 py-1 rounded-full text-sm font-medium bg-yellow-500/10 text-yellow-500'
+                            : 'px-3 py-1 rounded-full text-sm font-medium bg-zinc-800 text-zinc-400';
+                        
+                        showToast(
+                            'Success', 
+                            `Maintenance mode ${data.maintenance ? 'enabled' : 'disabled'}`,
+                            'success'
+                        );
+                    } else {
+                        showToast('Error', data.error || 'Failed to toggle maintenance mode', 'error');
+                    }
+                } catch (error) {
+                    showToast('Error', 'Failed to toggle maintenance mode', 'error');
                 }
-            } catch (error) {
-                showToast('Error', 'Failed to toggle maintenance mode', 'error');
+        }
+
+        // Logout Function
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                document.getElementById('adminPanel').classList.add('hidden');
+                document.getElementById('loginSection').classList.remove('hidden');
+                document.getElementById('password').value = '';
             }
         }
 
         // Auto-refresh stats every 30 seconds
-        setInterval(loadStats, 30000);
+        let statsInterval;
+        
+        function startStatsRefresh() {
+            loadStats();
+            statsInterval = setInterval(loadStats, 30000);
+        }
+
+        function stopStatsRefresh() {
+            if (statsInterval) {
+                clearInterval(statsInterval);
+            }
+        }
+
+        // Check if user is already logged in
+        async function checkLoginStatus() {
+            try {
+                const response = await fetch('/api/admin/stats');
+                if (response.ok) {
+                    document.getElementById('loginSection').classList.add('hidden');
+                    document.getElementById('adminPanel').classList.remove('hidden');
+                    startStatsRefresh();
+                }
+            } catch (error) {
+                console.error('Not logged in');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkLoginStatus();
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            stopStatsRefresh();
+        });
     </script>
 </body>
 </html>
