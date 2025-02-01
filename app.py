@@ -1,13 +1,14 @@
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, send_file, session
 import os
 import httpx
 import json
 import time
 import hashlib
 from datetime import datetime
+from functools import wraps
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'your-default-secret-key')
+app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 
 # In-memory storage for serverless environment
 COOKIES_DATA = {'cookies': []}
@@ -45,6 +46,7 @@ def generate_cookie(user, passw):
         client.close()
 
 def admin_required(f):
+    @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get('admin_logged_in'):
             return jsonify({'error': 'Unauthorized'}), 401
@@ -177,7 +179,6 @@ def get_stats():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Error handlers
 @app.errorhandler(404)
 def not_found_error(error):
     return jsonify({
