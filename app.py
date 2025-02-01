@@ -2,9 +2,8 @@ from flask import Flask, render_template, request, jsonify, session
 import os
 import httpx
 import json
-import time
-import hashlib
 from datetime import datetime
+import hashlib
 from functools import wraps
 
 app = Flask(__name__)
@@ -53,30 +52,12 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-@app.before_request
-def before_request():
-    if request.path.startswith('/static/') or request.path.startswith('/admin'):
-        return
-    if MAINTENANCE_MODE and request.path != '/':
-        if request.path.startswith('/api/'):
-            return jsonify({'error': 'Site is under maintenance'}), 503
-        return render_template('maintenance.html')
-
 @app.route('/')
 def index():
-    if MAINTENANCE_MODE:
-        return render_template('maintenance.html')
     return render_template('index.html')
-
-@app.route('/admin')
-def admin():
-    return render_template('admin.html')
 
 @app.route('/api/add', methods=['POST'])
 def add_account():
-    if MAINTENANCE_MODE:
-        return jsonify({'error': 'Site is under maintenance'}), 503
-
     data = request.json
     user = data.get('user')
     passw = data.get('password')
@@ -87,12 +68,10 @@ def add_account():
     cookie, uid = generate_cookie(user, passw)
     
     if cookie and uid:
-        # Check if account already exists
         for existing in COOKIES_DATA['cookies']:
             if existing['user'] == user:
                 return jsonify({'error': 'Account already exists'}), 400
         
-        # Add new account
         COOKIES_DATA['cookies'].append({
             'user': user,
             'password': passw,
@@ -111,6 +90,32 @@ def add_account():
             'success': False,
             'error': 'Failed to generate cookie'
         }), 400
+
+@app.route('/api/list', methods=['GET'])
+def list_accounts():
+    return jsonify({
+        'success': True,
+        'accounts': COOKIES_DATA['cookies']
+    })
+
+@app.route('/api/delete', methods=['POST'])
+def delete_account():
+    data = request.json
+    user = data.get('user')
+
+    if not user:
+        return jsonify({'error': 'User email required'}), 400
+
+    original_length = len(COOKIES_DATA['cookies'])
+    COOKIES_DATA['cookies'] = [acc for acc in COOKIES_DATA['cookies'] if acc['user'] != user]
+    
+    if len(COOKIES_DATA['cookies']) == original_length:
+        return jsonify({'error': 'Account not found'}), 404
+
+    return jsonify({
+        'success': True,
+        'message': 'Account deleted successfully'
+    })
 
 @app.route('/api/cookies/view/<user>', methods=['GET'])
 def view_cookies(user):
@@ -134,18 +139,22 @@ def refresh_all_cookies():
         }
         
         for account in COOKIES_DATA['cookies']:
-            cookie, uid = generate_cookie(account['user'], account['password'])
-            if cookie and uid:
-                account['cookie'] = cookie
-                account['uid'] = uid
-                account['last_refresh'] = datetime.now().isoformat()
-                results['success'].append(account['user'])
-            else:
+            try:
+                new_cookie, new_uid = generate_cookie(account['user'], account['password'])
+                if new_cookie and new_uid and new_cookie != account.get('cookie'):
+                    account['cookie'] = new_cookie
+                    account['uid'] = new_uid
+                    account['last_refresh'] = datetime.now().isoformat()
+                    results['success'].append(account['user'])
+                else:
+                    results['failed'].append(account['user'])
+            except Exception:
                 results['failed'].append(account['user'])
         
         return jsonify({
             'success': True,
             'message': f"Successfully refreshed {len(results['success'])} cookies",
+            'details': f"Failed: {len(results['failed'])}",
             'results': results
         })
     except Exception as e:
@@ -154,10 +163,11 @@ def refresh_all_cookies():
 @app.route('/api/cookies/download', methods=['GET'])
 def download_all_cookies():
     try:
-        cookies_text = ""
-        for account in COOKIES_DATA['cookies']:
-            cookies_text += f"# User: {account['user']}\n"
-            cookies_text += f"{account['cookie']}\n\n"
+        cookies_text = "\n".join([
+            account['cookie']
+            for account in COOKIES_DATA['cookies']
+            if account.get('cookie')
+        ])
         
         return jsonify({
             'success': True,
@@ -165,97 +175,6 @@ def download_all_cookies():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-@app.route('/api/list', methods=['GET'])
-def list_accounts():
-    if MAINTENANCE_MODE:
-        return jsonify({'error': 'Site is under maintenance'}), 503
-
-    return jsonify({
-        'success': True,
-        'accounts': COOKIES_DATA['cookies']
-    })
-
-@app.route('/api/delete', methods=['POST'])
-def delete_account():
-    if MAINTENANCE_MODE:
-        return jsonify({'error': 'Site is under maintenance'}), 503
-
-    data = request.json
-    user = data.get('user')
-
-    if not user:
-        return jsonify({'error': 'User email required'}), 400
-
-    original_length = len(COOKIES_DATA['cookies'])
-    COOKIES_DATA['cookies'] = [acc for acc in COOKIES_DATA['cookies'] if acc['user'] != user]
-    
-    if len(COOKIES_DATA['cookies']) == original_length:
-        return jsonify({'error': 'Account not found'}), 404
-
-    return jsonify({
-        'success': True,
-        'message': 'Account deleted successfully'
-    })
-
-@app.route('/api/admin/login', methods=['POST'])
-def admin_login():
-    data = request.json
-    password = data.get('password')
-    if not password:
-        return jsonify({'error': 'Password required'}), 400
-
-    hashed_password = hashlib.sha256(password.encode()).hexdigest()
-    
-    if hashed_password == ADMIN_PASSWORD:
-        session['admin_logged_in'] = True
-        return jsonify({'success': True})
-    
-    return jsonify({'error': 'Invalid password'}), 401
-
-@app.route('/api/admin/maintenance', methods=['POST'])
-@admin_required
-def toggle_maintenance():
-    try:
-        global MAINTENANCE_MODE
-        MAINTENANCE_MODE = not MAINTENANCE_MODE
-        
-        return jsonify({
-            'success': True,
-            'maintenance': MAINTENANCE_MODE,
-            'message': f"Maintenance mode {'enabled' if MAINTENANCE_MODE else 'disabled'}"
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/stats')
-@admin_required
-def get_stats():
-    try:
-        total_accounts = len(COOKIES_DATA['cookies'])
-        active_cookies = sum(1 for cookie in COOKIES_DATA['cookies'] if cookie.get('cookie'))
-        
-        return jsonify({
-            'total_accounts': total_accounts,
-            'active_cookies': active_cookies,
-            'maintenance': MAINTENANCE_MODE
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.errorhandler(404)
-def not_found_error(error):
-    return jsonify({
-        'success': False,
-        'error': 'Resource not found'
-    }), 404
-
-@app.errorhandler(500)
-def internal_error(error):
-    return jsonify({
-        'success': False,
-        'error': 'Internal server error'
-    }), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 3000))
