@@ -17,26 +17,41 @@
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
         }
+
+        .cookie-text {
+            word-break: break-all;
+            white-space: pre-wrap;
+        }
     </style>
 </head>
-<body class="bg-black text-zinc-100 min-h-screen">
-    <!-- Navigation -->
-    <nav class="fixed top-0 left-0 right-0 bg-zinc-950/80 border-b border-zinc-800/50 fancy-blur z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+<body class="bg-black text-zinc-100 min-h-screen pb-20">
+    <!-- Fixed Top Navigation -->
+    <nav class="fixed top-0 left-0 right-0 bg-black/80 border-b border-zinc-800/50 fancy-blur z-50">
+        <div class="max-w-7xl mx-auto px-4">
             <div class="flex items-center justify-between h-16">
-                <a href="/" class="flex items-center space-x-3">
+                <div class="flex items-center space-x-3">
                     <i data-lucide="cookie" class="w-6 h-6"></i>
                     <span class="text-xl font-bold">Cookie Manager</span>
-                </a>
-                <a href="/admin" class="flex items-center space-x-2 text-sm text-zinc-400 hover:text-white transition-colors">
-                    <i data-lucide="shield" class="w-4 h-4"></i>
-                    <span>Admin</span>
-                </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="refreshAllCookies()" class="flex items-center space-x-2 text-sm text-zinc-400 hover:text-white transition-colors">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Refresh All</span>
+                    </button>
+                    <button onclick="downloadAllCookies()" class="flex items-center space-x-2 text-sm text-zinc-400 hover:text-white transition-colors">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Download</span>
+                    </button>
+                    <a href="/admin" class="flex items-center space-x-2 text-sm text-zinc-400 hover:text-white transition-colors">
+                        <i data-lucide="shield" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Admin</span>
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-24 space-y-8">
+    <main class="max-w-7xl mx-auto px-4 pt-20 space-y-6">
         <!-- Add Account Form -->
         <div class="bg-zinc-900/50 rounded-2xl p-6 border border-zinc-800/50 fancy-blur">
             <h2 class="text-xl font-bold mb-6">Add Account</h2>
@@ -44,15 +59,21 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="space-y-2">
                         <label class="block text-sm text-zinc-400">Email</label>
-                        <input type="email" id="email" required
-                            class="w-full px-4 py-3 bg-black border border-zinc-800 rounded-xl focus:ring-2 focus:ring-white/10 focus:border-transparent transition-all"
-                            placeholder="Enter email">
+                        <div class="relative">
+                            <i data-lucide="mail" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-500"></i>
+                            <input type="email" id="email" required
+                                class="w-full pl-10 pr-4 py-3 bg-black border border-zinc-800 rounded-xl focus:ring-2 focus:ring-white/10 focus:border-transparent transition-all"
+                                placeholder="Enter Facebook email">
+                        </div>
                     </div>
                     <div class="space-y-2">
                         <label class="block text-sm text-zinc-400">Password</label>
-                        <input type="password" id="password" required
-                            class="w-full px-4 py-3 bg-black border border-zinc-800 rounded-xl focus:ring-2 focus:ring-white/10 focus:border-transparent transition-all"
-                            placeholder="Enter password">
+                        <div class="relative">
+                            <i data-lucide="lock" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-500"></i>
+                            <input type="password" id="password" required
+                                class="w-full pl-10 pr-4 py-3 bg-black border border-zinc-800 rounded-xl focus:ring-2 focus:ring-white/10 focus:border-transparent transition-all"
+                                placeholder="Enter Facebook password">
+                        </div>
                     </div>
                 </div>
                 <button type="submit" 
@@ -67,30 +88,42 @@
         <div class="bg-zinc-900/50 rounded-2xl p-6 border border-zinc-800/50 fancy-blur">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-xl font-bold">Accounts</h2>
-                <button onclick="refreshList()" class="text-zinc-400 hover:text-white">
+                <button onclick="loadAccounts()" class="text-zinc-400 hover:text-white">
                     <i data-lucide="refresh-cw" class="w-5 h-5"></i>
                 </button>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="border-b border-zinc-800">
-                        <tr>
-                            <th class="py-3 px-4 text-left text-zinc-400 font-medium">Email</th>
-                            <th class="py-3 px-4 text-left text-zinc-400 font-medium">UID</th>
-                            <th class="py-3 px-4 text-left text-zinc-400 font-medium">Added Date</th>
-                            <th class="py-3 px-4 text-left text-zinc-400 font-medium">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="accountsList" class="divide-y divide-zinc-800">
-                        <!-- Accounts will be loaded here -->
-                    </tbody>
-                </table>
+            <div id="accountsList" class="space-y-4">
+                <!-- Accounts will be loaded here -->
             </div>
         </div>
     </main>
 
+    <!-- Cookie Viewer Modal -->
+    <div id="cookieModal" class="hidden fixed inset-0 bg-black/80 fancy-blur z-50 p-4 overflow-y-auto">
+        <div class="max-w-2xl mx-auto mt-20 bg-zinc-900 rounded-2xl border border-zinc-800">
+            <div class="p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-bold">Cookie Details</h3>
+                    <button onclick="closeCookieModal()" class="text-zinc-400 hover:text-white">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <pre class="cookie-text bg-black p-4 rounded-xl border border-zinc-800 text-sm text-zinc-400 overflow-x-auto"></pre>
+                <div class="flex justify-end space-x-4">
+                    <button onclick="copyCookie()" class="px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors flex items-center space-x-2">
+                        <i data-lucide="copy" class="w-4 h-4"></i>
+                        <span>Copy</span>
+                    </button>
+                    <button onclick="closeCookieModal()" class="px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
-    <div id="toast" class="hidden fixed bottom-4 right-4 max-w-xs bg-zinc-900 border border-zinc-800 rounded-xl p-4 fancy-blur">
+    <div id="toast" class="hidden fixed bottom-20 md:bottom-4 right-4 max-w-xs bg-zinc-900 border border-zinc-800 rounded-xl p-4 fancy-blur z-50">
         <div class="flex items-start space-x-3">
             <div id="toastIcon" class="flex-shrink-0 w-5 h-5"></div>
             <div class="flex-1">
@@ -140,6 +173,36 @@
             document.getElementById('toast').classList.add('hidden');
         }
 
+        // Cookie Modal
+        function showCookieModal(email) {
+            fetch(`/api/cookies/view/${email}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const modal = document.getElementById('cookieModal');
+                        const pre = modal.querySelector('pre');
+                        pre.textContent = data.cookies;
+                        modal.classList.remove('hidden');
+                    } else {
+                        showToast('Error', data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    showToast('Error', 'Failed to load cookie', 'error');
+                });
+        }
+
+        function closeCookieModal() {
+            document.getElementById('cookieModal').classList.add('hidden');
+        }
+
+        function copyCookie() {
+            const pre = document.querySelector('#cookieModal pre');
+            navigator.clipboard.writeText(pre.textContent)
+                .then(() => showToast('Success', 'Cookie copied to clipboard', 'success'))
+                .catch(() => showToast('Error', 'Failed to copy cookie', 'error'));
+        }
+
         // Account Management
         async function loadAccounts() {
             try {
@@ -147,23 +210,41 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    const tbody = document.getElementById('accountsList');
-                    tbody.innerHTML = '';
+                    const container = document.getElementById('accountsList');
+                    container.innerHTML = '';
                     
                     data.accounts.forEach(account => {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td class="py-3 px-4">${account.user}</td>
-                            <td class="py-3 px-4 text-zinc-400">${account.uid}</td>
-                            <td class="py-3 px-4 text-zinc-400">${new Date(account.added_date).toLocaleString()}</td>
-                            <td class="py-3 px-4">
-                                <button onclick="deleteAccount('${account.user}')" 
-                                    class="text-red-500 hover:text-red-400 transition-colors">
-                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                </button>
-                            </td>
+                        const div = document.createElement('div');
+                        div.className = 'bg-black rounded-xl p-4 border border-zinc-800 space-y-3';
+                        div.innerHTML = `
+                            <div class="flex items-center justify-between">
+                                <div class="space-y-1">
+                                    <div class="font-medium">${account.user}</div>
+                                    <div class="text-sm text-zinc-400">UID: ${account.uid}</div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <button onclick="showCookieModal('${account.user}')" 
+                                        class="p-2 text-zinc-400 hover:text-white transition-colors">
+                                        <i data-lucide="eye" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="deleteAccount('${account.user}')" 
+                                        class="p-2 text-red-500 hover:text-red-400 transition-colors">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4 text-sm">
+                                <div class="text-zinc-400">
+                                    <i data-lucide="calendar" class="w-4 h-4 inline mr-1"></i>
+                                    Added: ${new Date(account.added_date).toLocaleDateString()}
+                                </div>
+                                <div class="text-zinc-400">
+                                    <i data-lucide="refresh-cw" class="w-4 h-4 inline mr-1"></i>
+                                    Last Refresh: ${new Date(account.last_refresh).toLocaleDateString()}
+                                </div>
+                            </div>
                         `;
-                        tbody.appendChild(tr);
+                        container.appendChild(div);
                     });
                     lucide.createIcons();
                 }
@@ -172,29 +253,54 @@
             }
         }
 
-        async function addAccount(email, password) {
+        async function refreshAllCookies() {
             try {
-                const response = await fetch('/api/add', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        user: email,
-                        password: password
-                    })
+                const button = document.querySelector('button i[data-lucide="refresh-cw"]');
+                button.classList.add('animate-spin');
+                
+                const response = await fetch('/api/cookies/refresh/all', {
+                    method: 'POST'
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    showToast('Success', 'Account added successfully', 'success');
+                    showToast('Success', data.message, 'success');
                     loadAccounts();
                 } else {
-                    showToast('Error', data.error || 'Failed to add account', 'error');
+                    showToast('Error', data.error, 'error');
                 }
             } catch (error) {
-                showToast('Error', 'Failed to add account', 'error');
+                showToast('Error', 'Failed to refresh cookies', 'error');
+            } finally {
+                const button = document.querySelector('button i[data-lucide="refresh-cw"]');
+                button.classList.remove('animate-spin');
+            }
+        }
+
+        async function downloadAllCookies() {
+            try {
+                const response = await fetch('/api/cookies/download');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Create blob and download
+                    const blob = new Blob([data.cookies], { type: 'text/plain' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `cookies_${new Date().toISOString().split('T')[0]}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    showToast('Success', 'Cookies downloaded successfully', 'success');
+                } else {
+                    showToast('Error', data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error', 'Failed to download cookies', 'error');
             }
         }
 
@@ -218,7 +324,7 @@
                     showToast('Success', 'Account deleted successfully', 'success');
                     loadAccounts();
                 } else {
-                    showToast('Error', data.error || 'Failed to delete account', 'error');
+                    showToast('Error', data.error, 'error');
                 }
             } catch (error) {
                 showToast('Error', 'Failed to delete account', 'error');
@@ -229,13 +335,62 @@
         document.getElementById('addAccountForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            const button = e.target.querySelector('button');
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             
-            await addAccount(email, password);
+            button.disabled = true;
+            button.innerHTML = `
+                <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                <span>Adding...</span>
+            `;
+            lucide.createIcons();
             
-            // Clear form
-            e.target.reset();
+            try {
+                const response = await fetch('/api/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user: email,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Success', 'Account added successfully', 'success');
+                    e.target.reset();
+                    loadAccounts();
+                } else {
+                    showToast('Error', data.error || 'Failed to add account', 'error');
+                }
+            } catch (error) {
+                showToast('Error', 'Failed to add account', 'error');
+            } finally {
+                button.disabled = false;
+                button.innerHTML = `
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Add Account</span>
+                `;
+                lucide.createIcons();
+            }
+        });
+
+        // Handle escape key for modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeCookieModal();
+            }
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('cookieModal').addEventListener('click', (e) => {
+            if (e.target.id === 'cookieModal') {
+                closeCookieModal();
+            }
         });
 
         // Initial load
