@@ -1,2 +1,4 @@
-flask
-httpx
+flask==2.0.1
+httpx==0.24.1
+python-dotenv==1.0.0
+werkzeug==2.0.1
